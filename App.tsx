@@ -1,5 +1,5 @@
 
-import React, { useState, createContext, useContext } from 'react';
+import React, { useState, createContext, useContext, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -10,7 +10,8 @@ import {
   Settings,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from 'lucide-react';
 
 import Dashboard from './pages/Dashboard';
@@ -19,8 +20,8 @@ import Clients from './pages/Clients';
 import Orders from './pages/Orders';
 import Products from './pages/Products';
 
-import { MOCK_DEALERS, MOCK_CLIENTS, MOCK_PRODUCTS, MOCK_ORDERS } from './mockData';
 import { Dealer, Client, Product, Order } from './types';
+import { api } from './api';
 
 // Context for global state
 interface DataContextType {
@@ -28,10 +29,21 @@ interface DataContextType {
   clients: Client[];
   products: Product[];
   orders: Order[];
-  setDealers: React.Dispatch<React.SetStateAction<Dealer[]>>;
-  setClients: React.Dispatch<React.SetStateAction<Client[]>>;
-  setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
-  setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
+  loading: boolean;
+  refreshData: () => Promise<void>;
+  setDealers: (dealers: Dealer[]) => void; // For local optimistic updates if needed
+  setClients: (clients: Client[]) => void;
+  setProducts: (products: Product[]) => void;
+  setOrders: (orders: Order[]) => void;
+  // Specific async actions
+  saveDealer: (dealer: Dealer) => Promise<void>;
+  deleteDealer: (id: string) => Promise<void>;
+  saveClient: (client: Client) => Promise<void>;
+  deleteClient: (id: string) => Promise<void>;
+  saveProduct: (product: Product) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  saveOrder: (order: Order) => Promise<void>;
+  deleteOrder: (id: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -56,12 +68,23 @@ const SidebarLink = ({ to, icon: Icon, label, active }: { to: string, icon: any,
   </Link>
 );
 
+const LoadingOverlay = () => (
+  <div className="fixed inset-0 z-[9999] bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
+    <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 flex flex-col items-center space-y-4">
+      <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+      <p className="text-sm font-bold text-gray-900">Connecting to Server...</p>
+    </div>
+  </div>
+);
+
 const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { loading } = useData();
   const location = useLocation();
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
+      {loading && <LoadingOverlay />}
       <aside className={`bg-gray-900 text-white transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-20'} hidden md:flex flex-col`}>
         <div className="p-6 flex items-center justify-between">
           {sidebarOpen && <h1 className="text-xl font-bold tracking-tight text-blue-400">OmniOrder</h1>}
@@ -105,13 +128,84 @@ const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
 };
 
 const App = () => {
-  const [dealers, setDealers] = useState<Dealer[]>(MOCK_DEALERS);
-  const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS);
-  const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
-  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const [dealers, setDealers] = useState<Dealer[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const refreshData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [d, c, p, o] = await Promise.all([
+        api.dealers.getAll(),
+        api.clients.getAll(),
+        api.products.getAll(),
+        api.orders.getAll()
+      ]);
+      setDealers(d);
+      setClients(c);
+      setProducts(p);
+      setOrders(o);
+    } catch (error) {
+      console.error('Failed to fetch data', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
+
+  // Sync Wrappers
+  const saveDealer = async (dealer: Dealer) => {
+    setLoading(true);
+    await api.dealers.save(dealer);
+    await refreshData();
+  };
+  const deleteDealer = async (id: string) => {
+    setLoading(true);
+    await api.dealers.delete(id);
+    await refreshData();
+  };
+  const saveClient = async (client: Client) => {
+    setLoading(true);
+    await api.clients.save(client);
+    await refreshData();
+  };
+  const deleteClient = async (id: string) => {
+    setLoading(true);
+    await api.clients.delete(id);
+    await refreshData();
+  };
+  const saveProduct = async (product: Product) => {
+    setLoading(true);
+    await api.products.save(product);
+    await refreshData();
+  };
+  const deleteProduct = async (id: string) => {
+    setLoading(true);
+    await api.products.delete(id);
+    await refreshData();
+  };
+  const saveOrder = async (order: Order) => {
+    setLoading(true);
+    await api.orders.save(order);
+    await refreshData();
+  };
+  const deleteOrder = async (id: string) => {
+    setLoading(true);
+    await api.orders.delete(id);
+    await refreshData();
+  };
 
   return (
-    <DataContext.Provider value={{ dealers, clients, products, orders, setDealers, setClients, setProducts, setOrders }}>
+    <DataContext.Provider value={{ 
+      dealers, clients, products, orders, loading, refreshData,
+      setDealers, setClients, setProducts, setOrders,
+      saveDealer, deleteDealer, saveClient, deleteClient, saveProduct, deleteProduct, saveOrder, deleteOrder
+    }}>
       <HashRouter>
         <AppLayout>
           <Routes>

@@ -5,7 +5,7 @@ import { useData } from '../App';
 import { Dealer } from '../types';
 
 const Dealers = () => {
-  const { dealers, setDealers } = useData();
+  const { dealers, saveDealer, deleteDealer } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDealer, setEditingDealer] = useState<Dealer | null>(null);
@@ -42,25 +42,27 @@ const Dealers = () => {
     setIsModalOpen(true);
   };
 
-  const handleSaveDealer = (e: React.FormEvent) => {
+  const handleSaveDealer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingDealer) {
-      setDealers(dealers.map(d => d.id === editingDealer.id ? { ...editingDealer, ...formData } : d));
-    } else {
-      const newDealer: Dealer = {
-        id: Date.now().toString(),
-        ...formData,
-        status: 'ACTIVE'
-      };
-      setDealers([newDealer, ...dealers]);
-    }
+    const dealerToSave: Dealer = editingDealer 
+      ? { ...editingDealer, ...formData }
+      : { id: Date.now().toString(), ...formData, status: 'ACTIVE' };
+    
+    await saveDealer(dealerToSave);
     setIsModalOpen(false);
   };
 
-  const handleDeleteDealer = (id: string) => {
+  const handleDeleteDealer = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this dealer? All associated data might be affected.')) {
-      setDealers(dealers.filter(d => d.id !== id));
+      await deleteDealer(id);
     }
+  };
+
+  const toggleStatus = async (dealer: Dealer) => {
+    await saveDealer({
+      ...dealer,
+      status: dealer.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+    });
   };
 
   return (
@@ -84,7 +86,7 @@ const Dealers = () => {
         <input 
           type="text" 
           placeholder="Search by name or code..."
-          className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+          className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-gray-900"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -98,11 +100,14 @@ const Dealers = () => {
                 <div className="w-12 h-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xl uppercase">
                   {dealer.name.charAt(0)}
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${dealer.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                    {dealer.status}
-                  </span>
-                </div>
+                <button 
+                  onClick={() => toggleStatus(dealer)}
+                  className={`px-2 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-colors ${
+                    dealer.status === 'ACTIVE' ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200'
+                  }`}
+                >
+                  {dealer.status}
+                </button>
               </div>
               <h3 className="text-lg font-bold text-gray-900">{dealer.name}</h3>
               <p className="text-blue-600 text-xs font-semibold uppercase tracking-wider mb-4">{dealer.dealerCode}</p>
@@ -155,23 +160,23 @@ const Dealers = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Dealer Name</label>
-                  <input required type="text" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
+                  <input required type="text" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Dealer Code</label>
-                  <input required type="text" placeholder="e.g. DLR-00X" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={formData.dealerCode} onChange={(e) => setFormData({...formData, dealerCode: e.target.value})} />
+                  <input required type="text" placeholder="e.g. DLR-00X" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white" value={formData.dealerCode} onChange={(e) => setFormData({...formData, dealerCode: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                  <input required type="text" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} />
+                  <input required type="text" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white" value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input required type="tel" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+                  <input required type="tel" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input required type="email" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                  <input required type="email" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
                 </div>
               </div>
               <div className="flex space-x-3 pt-4">
