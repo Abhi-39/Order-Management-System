@@ -9,7 +9,7 @@ OmniOrder is a high-performance, professional-grade Order Management System (OMS
 - **Client Relationship Tracking**: Seamlessly link end-customers to specific dealers.
 - **Product Catalog**: Categorized manufacturing units (Wardrobes/Kitchens) with base pricing.
 - **Manufacturing Order Lifecycle**: Multi-item order creation with automated dealer-client linking and status tracking.
-- **Global State Management**: Built using React Context (`DataContext`) for cross-view consistency.
+- **Local Persistence**: Data is persisted in the browser's `localStorage`, allowing for a fully functional demo without a dedicated backend server.
 
 ## 🛠 Tech Stack
 
@@ -18,62 +18,18 @@ OmniOrder is a high-performance, professional-grade Order Management System (OMS
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Charts**: [Recharts](https://recharts.org/)
 - **Routing**: [React Router 7](https://reactrouter.com/)
+- **Persistence**: Simulated Async API with Browser Storage
 
 ---
 
 ## 💻 Getting Started (Local Development)
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or higher)
 - A modern web browser (Chrome, Edge, or Firefox)
 
 ### Setup
-1. **Clone or Download** the project files into a folder.
-2. **Initialize Node (Optional but recommended)**:
-   If you want to use a dev server like Vite for hot-reloading:
-   ```bash
-   npm init -y
-   npm install vite @vitejs/plugin-react
-   ```
-3. **Run with Vite**:
-   Create a `vite.config.ts` (or `.js`) and run:
-   ```bash
-   npx vite
-   ```
-   *Note: Because this project uses a native `importmap` in `index.html`, most modern dev servers will serve it correctly out of the box.*
-
-4. **Static Server Alternative**:
-   If you prefer a simple static server:
-   ```bash
-   npx serve .
-   ```
-   *(Ensure your server is configured to handle SPA routing by redirecting unknown paths to `index.html` if you move away from HashRouter).*
-
----
-
-## 🌐 Public Deployment
-
-### Option 1: Vercel (Recommended)
-1. Push your code to a GitHub repository.
-2. Log in to [Vercel](https://vercel.com/) and click **"Add New" > "Project"**.
-3. Import your repository.
-4. If using a build tool, ensure the **Build Command** is set (e.g., `npm run build`) and the **Output Directory** is correct (e.g., `dist`).
-5. Click **Deploy**.
-
-### Option 2: Netlify
-1. Drag and drop your project folder into the [Netlify Drop](https://app.netlify.com/drop) zone.
-2. Or, connect your GitHub repository for continuous deployment.
-
-### Option 3: GitHub Pages
-1. Ensure you are using `HashRouter` (already configured in `App.tsx`) to avoid 404 errors on refresh.
-2. Use the `gh-pages` package:
-   ```bash
-   npm install gh-pages --save-dev
-   ```
-3. Add a `homepage` field to your `package.json` and deploy:
-   ```bash
-   npm run deploy
-   ```
+1. The application is a standalone frontend project.
+2. Data is stored locally in your browser. Clearing your browser cache or site data will reset the system to the initial mock data.
 
 ---
 
@@ -81,6 +37,7 @@ OmniOrder is a high-performance, professional-grade Order Management System (OMS
 
 ```text
 ├── App.tsx             # Main entry point & Global DataContext
+├── api.ts              # Simulated API layer (LocalStorage)
 ├── index.html          # HTML5 boilerplate & Import maps
 ├── index.tsx           # React DOM rendering
 ├── types.ts            # TypeScript interfaces & Enums
@@ -89,9 +46,9 @@ OmniOrder is a high-performance, professional-grade Order Management System (OMS
 ```
 
 ## 🎨 UI/UX Design Choices
-- **Professional Aesthetic**:Indigo & Slate palette.
+- **Professional Aesthetic**: Indigo & Slate palette.
 - **Responsive Layout**: Sidebar-driven navigation.
-- **Visibility Robustness**: Explicitly styled form elements for dark/light mode compatibility.
+- **Persistence**: Implements an asynchronous simulation of a backend to mirror real-world application behavior.
 
 ---
 *Developed by a world-class senior frontend engineer.*

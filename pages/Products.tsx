@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
 import { useData } from '../App';
-import { Search, Plus, Filter, X, IndianRupee, Pencil, Trash2 } from 'lucide-react';
+import { Search, Plus, X, IndianRupee, Pencil, Trash2 } from 'lucide-react';
 import { Product } from '../types';
 
 const Products = () => {
-  const { products, setProducts } = useData();
+  const { products, saveProduct, deleteProduct } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,23 +38,19 @@ const Products = () => {
     setIsModalOpen(true);
   };
 
-  const handleSaveProduct = (e: React.FormEvent) => {
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingProduct) {
-      setProducts(products.map(p => p.id === editingProduct.id ? { ...editingProduct, ...formData } : p));
-    } else {
-      const newProduct: Product = {
-        id: Date.now().toString(),
-        ...formData
-      };
-      setProducts([newProduct, ...products]);
-    }
+    const productToSave: Product = editingProduct 
+      ? { ...editingProduct, ...formData }
+      : { id: Date.now().toString(), ...formData };
+    
+    await saveProduct(productToSave);
     setIsModalOpen(false);
   };
 
-  const handleDeleteProduct = (id: string) => {
+  const handleDeleteProduct = async (id: string) => {
     if (window.confirm('Remove this product from catalog?')) {
-      setProducts(products.filter(p => p.id !== id));
+      await deleteProduct(id);
     }
   };
 

@@ -5,7 +5,7 @@ import { Plus, Search, User, Briefcase, X, MapPin, Phone, Pencil, Trash2 } from 
 import { Client } from '../types';
 
 const Clients = () => {
-  const { clients, setClients, dealers } = useData();
+  const { clients, dealers, saveClient, deleteClient } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,23 +40,19 @@ const Clients = () => {
     setIsModalOpen(true);
   };
 
-  const handleSaveClient = (e: React.FormEvent) => {
+  const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingClient) {
-      setClients(clients.map(c => c.id === editingClient.id ? { ...editingClient, ...formData } : c));
-    } else {
-      const newClient: Client = {
-        id: Date.now().toString(),
-        ...formData
-      };
-      setClients([newClient, ...clients]);
-    }
+    const clientToSave: Client = editingClient 
+      ? { ...editingClient, ...formData }
+      : { id: Date.now().toString(), ...formData };
+    
+    await saveClient(clientToSave);
     setIsModalOpen(false);
   };
 
-  const handleDeleteClient = (id: string) => {
+  const handleDeleteClient = async (id: string) => {
     if (window.confirm('Delete this client record? This action cannot be undone.')) {
-      setClients(clients.filter(c => c.id !== id));
+      await deleteClient(id);
     }
   };
 

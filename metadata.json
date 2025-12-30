@@ -1,7 +1,5 @@
 {
   "name": "OmniOrder - Manufacturing OMS",
   "description": "A high-performance Order Management System for wardrobe and kitchen manufacturing, featuring dealer tracking, client management, and order lifecycle analytics.",
-  "requestFramePermissions": [
-    "camera"
-  ]
+  "requestFramePermissions": []
 }

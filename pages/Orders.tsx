@@ -1,15 +1,14 @@
 
 import React, { useState } from 'react';
 import { useData } from '../App';
-import { Search, Filter, Download, Plus, Calendar, FileText, CreditCard, Trash2, X, ChevronDown, Package } from 'lucide-react';
+import { Search, Plus, Trash2, X, Package, FileText, CreditCard, Download } from 'lucide-react';
 import { Order, OrderStatus, PaymentStatus, OrderItem } from '../types';
 
 const Orders = () => {
-  const { orders, setOrders, dealers, clients, products } = useData();
+  const { orders, dealers, clients, products, saveOrder, deleteOrder } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  // Order Form State
   const [orderFormData, setOrderFormData] = useState({
     clientId: '',
     orderDate: new Date().toISOString().split('T')[0],
@@ -22,14 +21,17 @@ const Orders = () => {
     order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDeleteOrder = (id: string) => {
+  const handleDeleteOrder = async (id: string) => {
     if (window.confirm('Cancel and delete this order record?')) {
-      setOrders(orders.filter(o => o.id !== id));
+      await deleteOrder(id);
     }
   };
 
-  const handleUpdateStatus = (id: string, status: OrderStatus) => {
-    setOrders(orders.map(o => o.id === id ? { ...o, orderStatus: status } : o));
+  const handleUpdateStatus = async (id: string, status: OrderStatus) => {
+    const order = orders.find(o => o.id === id);
+    if (order) {
+      await saveOrder({ ...order, orderStatus: status });
+    }
   };
 
   const handleAddItem = () => {
@@ -58,7 +60,7 @@ const Orders = () => {
     setOrderItems(orderItems.filter((_, i) => i !== index));
   };
 
-  const handleSaveOrder = (e: React.FormEvent) => {
+  const handleSaveOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     const client = clients.find(c => c.id === orderFormData.clientId);
     if (!client) return alert('Please select a client');
@@ -78,7 +80,7 @@ const Orders = () => {
       items: orderItems,
     };
 
-    setOrders([newOrder, ...orders]);
+    await saveOrder(newOrder);
     setIsModalOpen(false);
     setOrderItems([]);
     setOrderFormData({ clientId: '', orderDate: new Date().toISOString().split('T')[0], paymentStatus: PaymentStatus.PENDING, orderStatus: OrderStatus.PLACED });
@@ -98,7 +100,7 @@ const Orders = () => {
           </button>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 shadow-sm transition-colors"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-blue-700 shadow-sm transition-colors"
           >
             <Plus size={20} />
             <span>Create Order</span>
@@ -182,17 +184,11 @@ const Orders = () => {
                   </tr>
                 );
               })}
-              {filteredOrders.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-6 py-20 text-center text-gray-400 font-medium italic">No orders found.</td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Create Order Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8 animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
@@ -219,13 +215,7 @@ const Orders = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Order Date</label>
-                  <input 
-                    required 
-                    type="date" 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white"
-                    value={orderFormData.orderDate}
-                    onChange={(e) => setOrderFormData({...orderFormData, orderDate: e.target.value})}
-                  />
+                  <input required type="date" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white" value={orderFormData.orderDate} onChange={(e) => setOrderFormData({...orderFormData, orderDate: e.target.value})} />
                 </div>
               </div>
 
@@ -235,11 +225,7 @@ const Orders = () => {
                     <Package size={18} className="text-blue-600" />
                     <span>Order Items</span>
                   </h3>
-                  <button 
-                    type="button" 
-                    onClick={handleAddItem}
-                    className="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center space-x-1"
-                  >
+                  <button type="button" onClick={handleAddItem} className="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center space-x-1">
                     <Plus size={16} />
                     <span>Add Item</span>
                   </button>
@@ -250,71 +236,30 @@ const Orders = () => {
                     <div key={item.id} className="flex items-end space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
                       <div className="flex-1">
                         <label className="block text-[10px] uppercase font-bold text-gray-500 mb-1">Product</label>
-                        <select 
-                          required
-                          className="w-full px-3 py-2 border border-gray-200 rounded text-sm text-gray-900 bg-white"
-                          value={item.productId}
-                          onChange={(e) => handleItemChange(index, 'productId', e.target.value)}
-                        >
+                        <select required className="w-full px-3 py-2 border border-gray-200 rounded text-sm text-gray-900 bg-white" value={item.productId} onChange={(e) => handleItemChange(index, 'productId', e.target.value)}>
                           <option value="" className="text-gray-900 bg-white">Select Product</option>
-                          {products.map(p => (
-                            <option key={p.id} value={p.id} className="text-gray-900 bg-white">{p.name} (₹{p.basePrice})</option>
-                          ))}
+                          {products.map(p => <option key={p.id} value={p.id} className="text-gray-900 bg-white">{p.name} (₹{p.basePrice})</option>)}
                         </select>
                       </div>
                       <div className="w-24">
                         <label className="block text-[10px] uppercase font-bold text-gray-500 mb-1">Qty</label>
-                        <input 
-                          required
-                          type="number"
-                          min="1"
-                          className="w-full px-3 py-2 border border-gray-200 rounded text-sm text-gray-900 bg-white"
-                          value={item.quantity}
-                          onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                        />
+                        <input required type="number" min="1" className="w-full px-3 py-2 border border-gray-200 rounded text-sm text-gray-900 bg-white" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} />
                       </div>
-                      <div className="w-32 py-2 text-right">
-                        <p className="text-[10px] uppercase font-bold text-gray-500">Subtotal</p>
-                        <p className="text-sm font-bold text-gray-900">₹{item.totalPrice.toLocaleString()}</p>
-                      </div>
-                      <button 
-                        type="button" 
-                        onClick={() => handleRemoveItem(index)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      <div className="w-32 py-2 text-right font-bold text-gray-900">₹{item.totalPrice.toLocaleString()}</div>
+                      <button type="button" onClick={() => handleRemoveItem(index)} className="p-2 text-red-500 hover:bg-red-50 rounded transition-colors"><Trash2 size={18} /></button>
                     </div>
                   ))}
-                  {orderItems.length === 0 && (
-                    <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-lg text-gray-400 text-sm">
-                      No products added yet. Click "Add Item" to start.
-                    </div>
-                  )}
                 </div>
               </div>
 
               <div className="pt-4 border-t border-gray-100">
-                <div className="flex justify-between items-center mb-6">
-                  <span className="text-gray-500 font-medium">Total Amount</span>
-                  <span className="text-2xl font-bold text-gray-900">
-                    ₹{orderItems.reduce((acc, item) => acc + item.totalPrice, 0).toLocaleString()}
-                  </span>
+                <div className="flex justify-between items-center mb-6 font-bold text-gray-900">
+                  <span>Total Amount</span>
+                  <span className="text-2xl">₹{orderItems.reduce((acc, item) => acc + item.totalPrice, 0).toLocaleString()}</span>
                 </div>
                 <div className="flex space-x-3">
-                  <button 
-                    type="button" 
-                    onClick={() => setIsModalOpen(false)}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 font-bold hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit"
-                    className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
-                  >
-                    Finalize Order
-                  </button>
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 font-bold hover:bg-gray-50 transition-colors">Cancel</button>
+                  <button type="submit" className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">Finalize Order</button>
                 </div>
               </div>
             </form>
